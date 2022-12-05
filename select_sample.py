@@ -19,7 +19,8 @@ if __name__ == '__main__':
         print('reading sample list..... => ', sample_list_file_path)
         sample_list_df = pd.read_excel(sample_list_file_path, engine='xlrd')  # use xlrd to read .xls file
         sample_list = sample_list_df['案號']
-        data_one_year_samples_df = data_df[data_df['CASENO'].isin(sample_list)]
+        data_case_no_df = data_df['CASENO'].apply(str)
+        data_one_year_samples_df = data_df[data_case_no_df.isin(sample_list)]
         data_all_years_samples_df = pd.concat([data_all_years_samples_df, data_one_year_samples_df], axis=0)
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name),
               'wb') as handle:

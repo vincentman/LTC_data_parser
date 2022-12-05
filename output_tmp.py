@@ -193,7 +193,7 @@ if __name__ == '__main__':
     for year in years:
         ce_year = int(year) + 1911
         pretest_df = all_df[(all_df['DATE_CREATED'].dt.year == ce_year) & (all_df['PLAN_TYPE'] == '初評')]
-        pretest_caseno_df = pretest_df['CASENO']
+        pretest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
         print('Process pretest, year: ', year)
         output_obj = OutputTmp(year, pretest_df)
         output_obj.process_pretest()
