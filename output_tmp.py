@@ -190,6 +190,7 @@ if __name__ == '__main__':
     years = ['108', '109', '110']
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name), 'rb') as handle:
         all_df = pd.DataFrame.from_dict(pickle.load(handle))
+    os.makedirs(config.data_output_tmp_path, exist_ok=True)
     for year in years:
         ce_year = int(year) + 1911
         pretest_df = all_df[(all_df['DATE_CREATED'].dt.year == ce_year) & (all_df['PLAN_TYPE'] == '初評')]
