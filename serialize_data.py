@@ -28,7 +28,7 @@ if __name__ == '__main__':
                       'wb') as handle:
                 pickle.dump(year_df, handle, protocol=pickle.HIGHEST_PROTOCOL)
         all_years_df = pd.concat([all_years_df, year_df], axis=0)
-    pickle_path = path.join(config.data_serialized_path, config.data_serialized_file_name)
+    pickle_path = path.join(config.data_serialized_path, config.data_serialized_pickle_name)
     with open(pickle_path, 'wb') as handle:
         print('writing pickle..... => ', pickle_path)
         pickle.dump(all_years_df, handle, protocol=pickle.HIGHEST_PROTOCOL)

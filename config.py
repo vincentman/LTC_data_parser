@@ -1,6 +1,7 @@
 data_path = 'data_reduce'
 data_serialized_path = 'data_reduce_serialized'
-data_serialized_file_name = 'all_years.pickle'
+data_serialized_pickle_name = 'all_years.pickle'
+data_serialized_xlsx_name = 'all_years.xlsx'
 data_sample_selected_path = 'data_sample_selected'
 data_sample_selected_pickle_name = 'all_years_samples.pickle'
 data_sample_selected_xlsx_name = 'all_years_samples.xlsx'

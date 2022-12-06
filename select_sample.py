@@ -7,7 +7,7 @@ import config
 
 if __name__ == '__main__':
     start = time.time()
-    data_pickle_path = path.join(config.data_serialized_path, config.data_serialized_file_name)
+    data_pickle_path = path.join(config.data_serialized_path, config.data_serialized_pickle_name)
     print('reading data pickle.....', data_pickle_path)
     with open(data_pickle_path, 'rb') as handle:
         data_pickle = pickle.load(handle)
@@ -25,8 +25,8 @@ if __name__ == '__main__':
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name),
               'wb') as handle:
         pickle.dump(data_all_years_samples_df, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    data_all_years_samples_df.to_excel(
-        path.join(config.data_sample_selected_path,
-                  config.data_sample_selected_xlsx_name), index=False)
+    # data_all_years_samples_df.to_excel(
+    #     path.join(config.data_sample_selected_path,
+    #               config.data_sample_selected_xlsx_name), index=False)
     end = time.time()
     print('Elapsed time(sec) for select_sample: ', end - start)
