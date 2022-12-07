@@ -28,8 +28,5 @@ if __name__ == '__main__':
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name),
               'wb') as handle:
         pickle.dump(data_all_years_samples_df, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    # data_all_years_samples_df.to_excel(
-    #     path.join(config.data_sample_selected_path,
-    #               config.data_sample_selected_xlsx_name), index=False)
     end = time.time()
     print('Elapsed time(sec) for select_sample: ', end - start)
