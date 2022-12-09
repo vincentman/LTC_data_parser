@@ -83,14 +83,19 @@ def get_response_score(df, keys):
 
 
 class OutputTmp:
-    def __init__(self, year, df):
+    def __init__(self, year, df, sample_df):
         self.year = year
         self.df = df
+        self.sample_df = sample_df
         self.df.fillna(str_na, inplace=True)
         self.blank = [''] * len(self.df)
         print(f'資料筆數： {len(self.df)}')
+        print(f'個案筆數： {len(self.sample_df)}')
+        self.df['CASENO'] = self.df['CASENO'].apply(str)
+        self.sample_df['案號'] = self.sample_df['案號'].apply(str)
         self.case_no = self.df['CASENO']
         self.converted_year = list(map(lambda x: x.year - 1911, self.df['DATE_CREATED']))
+        # pd.merge(df, sample_df[['案號', '姓名']], left_on='CASENO', right_on='案號').drop('案號', axis=1)
 
     def process_pretest(self):
         service_info_dict = {'個案編號': self.case_no, '年度': self.converted_year,
@@ -108,9 +113,9 @@ class OutputTmp:
                            '婚姻狀況': map(convert_digit, self.df['MARRIAGE']),
                            '身份福利': map(convert_welfare, income), '居住狀況': map(convert_digit, self.df['H1A']),
                            '看護有無': map(lambda x: str_na if x == str_na else (0 if '無' in x else 1),
-                                           self.df['LABOR_TYPE']),
+                                       self.df['LABOR_TYPE']),
                            '偏遠與否': map(lambda x: str_na if x == str_na else (1 if '偏遠地區' in x else 0),
-                                           self.df['A5']),
+                                       self.df['A5']),
                            '一般戶1': map(convert_yes_no, self.df['A3CH1']),
                            '一般戶2': map(convert_yes_no, self.df['A3CH2']),
                            '低收': map(convert_yes_no, self.df['A3CH3']),
@@ -188,6 +193,9 @@ if __name__ == '__main__':
     start = time.time()
     # 以建檔年份(108~111)，初評為條件 => 初評中介檔，取得案號
     years = ['108', '109', '110', '111']
+    with open(path.join(config.sample_list_serialized_path, config.sample_list_pickle_name), 'rb') as handle:
+        all_sample_df = pd.DataFrame.from_dict(pickle.load(handle))
+        all_sample_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name), 'rb') as handle:
         all_df = pd.DataFrame.from_dict(pickle.load(handle))
     os.makedirs(config.data_output_tmp_path, exist_ok=True)
@@ -196,7 +204,7 @@ if __name__ == '__main__':
         pretest_df = all_df[(all_df['DATE_CREATED'].dt.year == ce_year) & (all_df['PLAN_TYPE'] == '初評')]
         pretest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
         print('Process pretest, year: ', year)
-        output_obj = OutputTmp(year, pretest_df)
+        output_obj = OutputTmp(year, pretest_df, all_sample_df)
         output_obj.process_pretest()
     # 依初評所得案號，取出複評，再以案號、建檔日期為條件做排序，取出第一筆複評 => 複評中介檔
     end = time.time()
