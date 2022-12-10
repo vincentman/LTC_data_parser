@@ -18,7 +18,7 @@ convert_adl_score_4items = (lambda x: (4 - x) * 5)
 disease_item_num = 24
 
 
-def convert_welfare(income):
+def convert_welfare_old(income):
     if income[0] == '是':
         return int(1)
     if income[1] == '是':
@@ -27,6 +27,17 @@ def convert_welfare(income):
         return int(3)
     if income[3] == '是':
         return int(4)
+
+
+def convert_welfare(income):
+    if income == '未達1倍':
+        return 1
+    if income == '未達1.5倍':
+        return 2
+    if income == '1.5~2.5倍':
+        return 3
+    if income == '一般':
+        return 4
 
 
 def get_converted_diseases_dict(df):
@@ -48,8 +59,8 @@ def get_diseases_num(converted_diseases_dict, data_length):
     return diseases_num_df[column_name].tolist()
 
 
-def get_disease_items_dict(case_no, converted_year, df):
-    disease_items_dict = {'個案編號': case_no, '年度': converted_year, '1高血壓': map(convert_yes_no, df['G4E_CH1']),
+def get_disease_items_dict(converted_year, df):
+    disease_items_dict = {'個案編號': df['CASENO'], '年度': converted_year, '1高血壓': map(convert_yes_no, df['G4E_CH1']),
                           '2糖尿病': map(convert_yes_no, df['G4E_CH2']),
                           '3骨骼系統': map(convert_yes_no, df['G4E_CH3']),
                           '4視覺疾病': map(convert_yes_no, df['G4E_CH4']),
@@ -89,16 +100,16 @@ class OutputTmp:
         self.sample_df = sample_df
         self.df.fillna(str_na, inplace=True)
         self.blank = [''] * len(self.df)
-        print(f'資料筆數： {len(self.df)}')
-        print(f'個案筆數： {len(self.sample_df)}')
+        print(f'{year}年資料筆數： {len(self.df)}')
+        # print(f'所有年度個案筆數： {len(self.sample_df)}')
         self.df['CASENO'] = self.df['CASENO'].apply(str)
         self.sample_df['案號'] = self.sample_df['案號'].apply(str)
-        self.case_no = self.df['CASENO']
         self.converted_year = list(map(lambda x: x.year - 1911, self.df['DATE_CREATED']))
-        # pd.merge(df, sample_df[['案號', '姓名']], left_on='CASENO', right_on='案號').drop('案號', axis=1)
+        self.df = pd.merge(self.df, self.sample_df[['案號', '姓名', '身分證號', '年齡', '福利身分']], left_on='CASENO',
+                           right_on='案號').drop('案號', axis=1)
 
-    def process_pretest(self):
-        service_info_dict = {'個案編號': self.case_no, '年度': self.converted_year,
+    def process_pretest(self, output_file_name):
+        service_info_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year,
                              '類別': self.df['PLAN_TYPE'],
                              '建檔日期': self.df['DATE_CREATED'], 'CA01': self.blank, 'CA02': self.blank,
                              'CA03': self.blank, 'CA04': self.blank, 'CA05': self.blank, 'CA06': self.blank,
@@ -106,25 +117,30 @@ class OutputTmp:
                              'CB03': self.blank, 'CB04': self.blank, 'CC01': self.blank, 'CD01': self.blank,
                              'CD02': self.blank, '備註': self.blank, '定義': self.blank}
         service_info_df = pd.DataFrame(service_info_dict)
-        income = list(zip(self.df['A3CH1'], self.df['A3CH2'], self.df['A3CH3'], self.df['A3CH7']))
-        population_dict = {'個案編號': self.case_no, '年度': self.converted_year, '年齡': self.blank,
-                           '性別': self.blank,
+        convert_gender = (lambda x: 1 if x[1] == '1' else 2)
+        convert_age = (lambda x: int(x.split('歲')[0]))
+        # income = list(zip(self.df['A3CH1'], self.df['A3CH2'], self.df['A3CH3'], self.df['A3CH7']))
+        population_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year, '姓名': self.df['姓名'],
+                           '年齡': map(convert_age, self.df['年齡']),
+                           '性別': map(convert_gender, self.df['身分證號']),
                            '教育程度': map(convert_digit, self.df['EDU_TYPE']),
                            '婚姻狀況': map(convert_digit, self.df['MARRIAGE']),
-                           '身份福利': map(convert_welfare, income), '居住狀況': map(convert_digit, self.df['H1A']),
+                           '福利身分': map(convert_welfare, self.df['福利身分']),
+                           # '身份福利': map(convert_welfare_old, income),
+                           '居住狀況': map(convert_digit, self.df['H1A']),
                            '看護有無': map(lambda x: str_na if x == str_na else (0 if '無' in x else 1),
                                        self.df['LABOR_TYPE']),
                            '偏遠與否': map(lambda x: str_na if x == str_na else (1 if '偏遠地區' in x else 0),
-                                       self.df['A5']),
-                           '一般戶1': map(convert_yes_no, self.df['A3CH1']),
-                           '一般戶2': map(convert_yes_no, self.df['A3CH2']),
-                           '低收': map(convert_yes_no, self.df['A3CH3']),
-                           '中低收': map(convert_yes_no, self.df['A3CH7'])}
+                                       self.df['A5'])}
+        # '一般戶1': map(convert_yes_no, self.df['A3CH1']),
+        # '一般戶2': map(convert_yes_no, self.df['A3CH2']),
+        # '低收': map(convert_yes_no, self.df['A3CH3']),
+        # '中低收': map(convert_yes_no, self.df['A3CH7'])}
         population_df = pd.DataFrame(population_dict)
         converted_diseases_dict = get_converted_diseases_dict(self.df)
         diseases_num = get_diseases_num(converted_diseases_dict, len(self.df))
         response_score = get_response_score(self.df, ['D_RESP2', 'D_RESP3', 'D_RESP4'])
-        health_status_dict = {'個案編號': self.case_no, '年度': self.converted_year,
+        health_status_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year,
                               '失能等級': map(lambda x: re.findall(r"\d", x)[0], self.df['CMS_LEV']),
                               '主要疾病分類': self.blank,
                               '共病數目': diseases_num, '疼痛1': map(convert_digit, self.df['G1A']),
@@ -137,9 +153,9 @@ class OutputTmp:
                               '短期記憶3': map(convert_digit, self.df['D_RESP3']),
                               '短期記憶4': map(convert_digit, self.df['D_RESP4']), '記憶總分': response_score}
         health_status_df = pd.DataFrame(health_status_dict)
-        disease_items_dict = get_disease_items_dict(self.case_no, self.converted_year, self.df)
+        disease_items_dict = get_disease_items_dict(self.converted_year, self.df)
         disease_items_df = pd.DataFrame(disease_items_dict)
-        adl_dict = {'個案編號': self.case_no, '年度': self.converted_year, '進食': map(convert_digit, self.df['E_EAT']),
+        adl_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year, '進食': map(convert_digit, self.df['E_EAT']),
                     '洗澡': map(convert_digit, self.df['E_BATH']),
                     '修飾': map(convert_digit, self.df['E_ADORN']),
                     '穿脫衣': map(convert_digit, self.df['E_WEAR']),
@@ -156,7 +172,7 @@ class OutputTmp:
             convert_adl_score_3items)
         adl_4items_score_dt = adl_df[['移位', '步行']].apply(convert_adl_score_4items)
         adl_sum = adl_2items_score_dt.sum(axis=1) + adl_3items_score_dt.sum(axis=1) + adl_4items_score_dt.sum(axis=1)
-        iadl_dict = {'個案編號': self.case_no, '年度': self.converted_year,
+        iadl_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year,
                      '電話': map(convert_digit, self.df['USE_PHONE']),
                      '上街購物': map(convert_digit, self.df['SHOPPING']),
                      '備餐': map(convert_digit, self.df['COOKING']),
@@ -165,7 +181,7 @@ class OutputTmp:
                      '財務': map(convert_digit, self.df['FINANCE'])}
         iadl_df = pd.DataFrame(iadl_dict)
         iadl_sum = iadl_df[['電話', '上街購物', '備餐', '家務', '洗衣', '外出', '服藥', '財務']].sum(axis=1)
-        caregiver_load_dict = {'個案編號': self.case_no, '年度': self.converted_year,
+        caregiver_load_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year,
                                '睡眠': map(convert_yes_no, self.df['JJ1']),
                                '體力': map(convert_yes_no, self.df['J2']),
                                '其他家人': map(convert_yes_no, self.df['J3']),
@@ -174,7 +190,7 @@ class OutputTmp:
         caregiver_load_df = pd.DataFrame(caregiver_load_dict)
         caregiver_load_sum = caregiver_load_df[['睡眠', '體力', '其他家人', '困擾行為', '壓力']].sum(axis=1).apply(
             lambda x: x if str(x).isnumeric() else str_na)
-        estimation_dict = {'個案編號': self.case_no, '年度': self.converted_year, 'ADL': adl_sum, 'IADL': iadl_sum,
+        estimation_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year, 'ADL': adl_sum, 'IADL': iadl_sum,
                            '失能等級': map(lambda x: re.findall(r"\d", x)[0], self.df['CMS_LEV']),
                            '照顧者負荷': caregiver_load_sum,
                            '目標達成率': self.blank}
@@ -182,7 +198,7 @@ class OutputTmp:
         pretest_dfs = {'服務使用次數': service_info_df, '社會人口': population_df, '健康狀況': health_status_df,
                        '共病項目': disease_items_df, 'ADL': adl_df, 'IADL': iadl_df, '照顧者負荷': caregiver_load_df,
                        '成效評估整理': estimation_df}
-        excel_path = path.join(config.data_output_tmp_path, f'{year}_初評中介檔.xlsx')
+        excel_path = path.join(config.data_output_tmp_path, output_file_name)
         print('writing excel..... => ', excel_path)
         with pd.ExcelWriter(excel_path) as writer:
             for sheet_name in pretest_dfs.keys():
@@ -205,7 +221,13 @@ if __name__ == '__main__':
         pretest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
         print('Process pretest, year: ', year)
         output_obj = OutputTmp(year, pretest_df, all_sample_df)
-        output_obj.process_pretest()
-    # 依初評所得案號，取出複評，再以案號、建檔日期為條件做排序，取出第一筆複評 => 複評中介檔
+        output_obj.process_pretest(f'{year}_初評中介檔.xlsx')
+        posttest_df = all_df[(all_df['CASENO'].isin(pretest_df['CASENO'])) & (all_df['PLAN_TYPE'] == '複評')]
+        posttest_df = posttest_df.sort_values(['CASENO', 'DATE_CREATED'])
+        posttest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
+        print('Process posttest, year: ', year)
+        output_obj = OutputTmp(year, posttest_df, all_sample_df)
+        output_obj.process_pretest(f'{year}_複評中介檔.xlsx')
+
     end = time.time()
     print('Elapsed time(sec) for output_tmp: ', end - start)
