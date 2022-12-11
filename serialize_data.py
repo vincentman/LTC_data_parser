@@ -32,7 +32,8 @@ if __name__ == '__main__':
         all_years_df = pd.concat([all_years_df, year_df], axis=0)
     pickle_path = path.join(config.data_serialized_path, config.data_serialized_pickle_name)
     with open(pickle_path, 'wb') as handle:
-        print('writing pickle..... => ', pickle_path)
+        all_years_df.drop_duplicates(inplace=True)
+        print(f'writing pickle(count: {len(all_years_df)})..... => {pickle_path}')
         pickle.dump(all_years_df, handle, protocol=pickle.HIGHEST_PROTOCOL)
     end = time.time()
     print('Elapsed time(sec) for serialize_data: ', end - start)
