@@ -7,6 +7,7 @@ import config
 from pathlib import Path
 import re
 import numpy as np
+import sys
 
 str_na = 'N/A'
 convert_yes_no = (lambda x: str_na if x == str_na else (1 if '是' in x else 0))
@@ -94,14 +95,11 @@ def get_response_score(df, keys):
 
 
 class OutputTmp:
-    def __init__(self, year, df, sample_df):
-        self.year = year
+    def __init__(self, df, sample_df):
         self.df = df
         self.sample_df = sample_df
         self.df.fillna(str_na, inplace=True)
         self.blank = [''] * len(self.df)
-        print(f'{year}年資料筆數： {len(self.df)}')
-        # print(f'所有年度個案筆數： {len(self.sample_df)}')
         self.df['CASENO'] = self.df['CASENO'].apply(str)
         self.sample_df['案號'] = self.sample_df['案號'].apply(str)
         self.converted_year = list(map(lambda x: x.year - 1911, self.df['DATE_CREATED']))
@@ -207,27 +205,42 @@ class OutputTmp:
 
 if __name__ == '__main__':
     start = time.time()
-    # 以建檔年份(108~111)，初評為條件 => 初評中介檔，取得案號
-    years = ['108', '109', '110', '111']
     with open(path.join(config.sample_list_serialized_path, config.sample_list_pickle_name), 'rb') as handle:
         all_sample_df = pd.DataFrame.from_dict(pickle.load(handle))
         all_sample_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)
+        print(f'所有年度個案筆數： {len(all_sample_df)}')
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name), 'rb') as handle:
         all_df = pd.DataFrame.from_dict(pickle.load(handle))
+        all_df.drop_duplicates(inplace=True)
+        print(f'所有年度資料筆數： {len(all_df)}')
     os.makedirs(config.data_output_tmp_path, exist_ok=True)
-    for year in years:
-        ce_year = int(year) + 1911
-        pretest_df = all_df[(all_df['DATE_CREATED'].dt.year == ce_year) & (all_df['PLAN_TYPE'] == '初評')]
+    if sys.argv[1] == 'pre_post_two_files':
+        pretest_df = all_df[all_df['PLAN_TYPE'] == '初評']
         pretest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
-        print('Process pretest, year: ', year)
-        output_obj = OutputTmp(year, pretest_df, all_sample_df)
-        output_obj.process_pretest(f'{year}_初評中介檔.xlsx')
-        posttest_df = all_df[(all_df['CASENO'].isin(pretest_df['CASENO'])) & (all_df['PLAN_TYPE'] == '複評')]
+        print(f'處理初評資料(筆數{len(pretest_df)}).....')
+        output_obj = OutputTmp(pretest_df, all_sample_df)
+        output_obj.process_pretest('初評中介檔.xlsx')
+        posttest_df = all_df[all_df['PLAN_TYPE'] == '複評']
         posttest_df = posttest_df.sort_values(['CASENO', 'DATE_CREATED'])
         posttest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
-        print('Process posttest, year: ', year)
-        output_obj = OutputTmp(year, posttest_df, all_sample_df)
-        output_obj.process_pretest(f'{year}_複評中介檔.xlsx')
+        print(f'處理複評資料(筆數{len(posttest_df)}).....')
+        output_obj = OutputTmp(posttest_df, all_sample_df)
+        output_obj.process_pretest('複評中介檔.xlsx')
+    else:
+        years = ['108', '109', '110', '111']
+        for year in years:
+            ce_year = int(year) + 1911
+            pretest_df = all_df[(all_df['DATE_CREATED'].dt.year == ce_year) & (all_df['PLAN_TYPE'] == '初評')]
+            pretest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
+            print(f'處理{year}年初評資料(筆數{len(pretest_df)}).....')
+            output_obj = OutputTmp(pretest_df, all_sample_df)
+            output_obj.process_pretest(f'{year}_初評中介檔.xlsx')
+            posttest_df = all_df[(all_df['CASENO'].isin(pretest_df['CASENO'])) & (all_df['PLAN_TYPE'] == '複評')]
+            posttest_df = posttest_df.sort_values(['CASENO', 'DATE_CREATED'])
+            posttest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)
+            print(f'處理{year}年複評資料(筆數{len(posttest_df)}).....')
+            output_obj = OutputTmp(posttest_df, all_sample_df)
+            output_obj.process_pretest(f'{year}_複評中介檔.xlsx')
 
     end = time.time()
     print('Elapsed time(sec) for output_tmp: ', end - start)
