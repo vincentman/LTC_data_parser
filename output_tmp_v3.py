@@ -197,9 +197,9 @@ class OutputTmp:
                            '福利身分': list(map(convert_welfare, self.df['福利身分'])),
                            '居住狀況': list(map(convert_digit, self.df['H1A'])),
                            '看護有無': list(map(lambda x: str_na if x == str_na else (0 if '無' in x else 1),
-                                                self.df['LABOR_TYPE'])),
+                                            self.df['LABOR_TYPE'])),
                            '偏遠與否': list(map(lambda x: str_na if x == str_na else (1 if '偏遠地區' in x else 0),
-                                                self.df['A5']))}
+                                            self.df['A5']))}
         summary.update(population_dict)
         converted_diseases_dict = get_converted_diseases_dict(self.df)
         diseases_num = get_diseases_num(converted_diseases_dict, len(self.df))
@@ -242,15 +242,12 @@ class OutputTmp:
             '複ADL總分': get_adl_score(posttest_adl_dict, False) if not self.posttest_df.empty else self.blank,
             '複IADL總分': get_iadl_score(posttest_iadl_dict, False) if not self.posttest_df.empty else self.blank,
             '複失能等級': list(map(convert_disability_level,
-                                   self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.blank,
+                              self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.blank,
             '複照顧者負荷總分': get_caregiver_load_score(posttest_caregiver_load_dict,
-                                                         False) if not self.posttest_df.empty else self.blank}
+                                                 False) if not self.posttest_df.empty else self.blank}
         summary.update(posttest_estimation_dict)
         output_df = pd.DataFrame(summary)
-        excel_path = path.join(config.data_output_tmp_path, output_file_name)
-        print('writing excel..... => ', excel_path)
-        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-            output_df.to_excel(writer, sheet_name="總表", index=False)
+        return output_df
 
 
 if __name__ == '__main__':
@@ -274,9 +271,23 @@ if __name__ == '__main__':
     tmp_concat_caseno = pd.concat([all_pre_caseno, has_post_caseno], axis=0)
     no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評的案號: 1250筆
     no_post_pretest_df = all_df[(all_df['CASENO'].isin(no_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
-    no_post_pretest_df.sort_values(['CASENO'])  # 只做初評的資料
-    OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_df).output('有做複評的總表.xlsx')
-    OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_df).output('沒做複評的總表.xlsx')
+    no_post_pretest_df = no_post_pretest_df.sort_values(['CASENO'])  # 只做初評的資料
+    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_df).output('有做複評的總表.xlsx')
+    no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_df).output('沒做複評的總表.xlsx')
+    all_output_df = pd.concat([has_post_output_df, no_post_output_df])
+    all_output_df = all_output_df.sort_values(['個案編號'])
+    has_post_output_path = path.join(config.data_output_tmp_path, '有做複評的總表.xlsx')
+    print('writing excel..... => ', has_post_output_path)
+    with pd.ExcelWriter(has_post_output_path, engine='openpyxl') as writer:
+        has_post_output_df.to_excel(writer, sheet_name="總表", index=False)
+    no_post_output_path = path.join(config.data_output_tmp_path, '沒做複評的總表.xlsx')
+    print('writing excel..... => ', no_post_output_path)
+    with pd.ExcelWriter(no_post_output_path, engine='openpyxl') as writer:
+        no_post_output_df.to_excel(writer, sheet_name="總表", index=False)
+    all_output_path = path.join(config.data_output_tmp_path, '全部總表.xlsx')
+    print('writing excel..... => ', all_output_path)
+    with pd.ExcelWriter(all_output_path, engine='openpyxl') as writer:
+        all_output_df.to_excel(writer, sheet_name="總表", index=False)
 
     end = time.time()
     print('Elapsed time(sec) for output_tmp: ', end - start)
