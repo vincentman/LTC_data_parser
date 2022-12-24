@@ -139,6 +139,7 @@ class OutputTmp:
         self.df.fillna(str_na, inplace=True)
         self.posttest_df.fillna(str_na, inplace=True)
         self.blank = [''] * len(self.df)
+        self.col_str_na = [str_na] * len(self.df)
         self.df['CASENO'] = self.df['CASENO'].apply(str)
         self.sample_df['案號'] = self.sample_df['案號'].apply(str)
         self.converted_year = list(map(lambda x: x.year - 1911, self.df['DATE_CREATED']))
@@ -148,43 +149,43 @@ class OutputTmp:
     def get_adl_dict(self, df, is_pretest):
         pre_post_test_str = '初' if is_pretest else '複'
         adl_dict = {
-            f'{pre_post_test_str}進食': list(map(convert_digit, df['E_EAT'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}洗澡': list(map(convert_digit, df['E_BATH'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}修飾': list(map(convert_digit, df['E_ADORN'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}穿脫衣': list(map(convert_digit, df['E_WEAR'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}排便': list(map(convert_digit, df['E_STOOL'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}排尿': list(map(convert_digit, df['E_URINE'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}如廁': list(map(convert_digit, df['E_TOILET'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}移位': list(map(convert_digit, df['E_MOVE'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}步行': list(map(convert_digit, df['E_WALK'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}上下樓': list(map(convert_digit, df['E_STAIRS'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}位移能力': list(map(convert_digit, df['E11'])) if not df.empty else self.blank}
+            f'{pre_post_test_str}進食': list(map(convert_digit, df['E_EAT'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}洗澡': list(map(convert_digit, df['E_BATH'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}修飾': list(map(convert_digit, df['E_ADORN'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}穿脫衣': list(map(convert_digit, df['E_WEAR'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}排便': list(map(convert_digit, df['E_STOOL'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}排尿': list(map(convert_digit, df['E_URINE'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}如廁': list(map(convert_digit, df['E_TOILET'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}移位': list(map(convert_digit, df['E_MOVE'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}步行': list(map(convert_digit, df['E_WALK'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}上下樓': list(map(convert_digit, df['E_STAIRS'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}位移能力': list(map(convert_digit, df['E11'])) if not df.empty else self.col_str_na}
         return adl_dict
 
     def get_iadl_dict(self, df, is_pretest):
         pre_post_test_str = '初' if is_pretest else '複'
         iadl_dict = {
-            f'{pre_post_test_str}電話': list(map(convert_digit, df['USE_PHONE'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}上街購物': list(map(convert_digit, df['SHOPPING'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}備餐': list(map(convert_digit, df['COOKING'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}家務': list(map(convert_digit, df['HOUSEWORK'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}洗衣': list(map(convert_digit, df['CLEANING'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}外出': list(map(convert_digit, df['OUT_ACTION'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}服藥': list(map(convert_digit, df['TAKE_MDC'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}財務': list(map(convert_digit, df['FINANCE'])) if not df.empty else self.blank}
+            f'{pre_post_test_str}電話': list(map(convert_digit, df['USE_PHONE'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}上街購物': list(map(convert_digit, df['SHOPPING'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}備餐': list(map(convert_digit, df['COOKING'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}家務': list(map(convert_digit, df['HOUSEWORK'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}洗衣': list(map(convert_digit, df['CLEANING'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}外出': list(map(convert_digit, df['OUT_ACTION'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}服藥': list(map(convert_digit, df['TAKE_MDC'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}財務': list(map(convert_digit, df['FINANCE'])) if not df.empty else self.col_str_na}
         return iadl_dict
 
     def get_caregiver_load_dict(self, df, is_pretest):
         pre_post_test_str = '初' if is_pretest else '複'
         caregiver_load_dict = {
-            f'{pre_post_test_str}睡眠': list(map(convert_yes_no, df['JJ1'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}體力': list(map(convert_yes_no, df['J2'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}其他家人': list(map(convert_yes_no, df['J3'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}困擾行為': list(map(convert_yes_no, df['J4'])) if not df.empty else self.blank,
-            f'{pre_post_test_str}壓力': list(map(convert_yes_no, df['J5'])) if not df.empty else self.blank}
+            f'{pre_post_test_str}睡眠': list(map(convert_yes_no, df['JJ1'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}體力': list(map(convert_yes_no, df['J2'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}其他家人': list(map(convert_yes_no, df['J3'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}困擾行為': list(map(convert_yes_no, df['J4'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}壓力': list(map(convert_yes_no, df['J5'])) if not df.empty else self.col_str_na}
         return caregiver_load_dict
 
-    def output(self, output_file_name):
+    def get_summary(self, output_file_name):
         summary = dict()
         convert_age = (lambda x: int(x.split('歲')[0]))
         convert_gender = (lambda x: 1 if x[1] == '1' else 2)
@@ -239,12 +240,12 @@ class OutputTmp:
         posttest_caregiver_load_dict = self.get_caregiver_load_dict(self.posttest_df, False)
         summary.update(posttest_caregiver_load_dict)
         posttest_estimation_dict = {
-            '複ADL總分': get_adl_score(posttest_adl_dict, False) if not self.posttest_df.empty else self.blank,
-            '複IADL總分': get_iadl_score(posttest_iadl_dict, False) if not self.posttest_df.empty else self.blank,
+            '複ADL總分': get_adl_score(posttest_adl_dict, False) if not self.posttest_df.empty else self.col_str_na,
+            '複IADL總分': get_iadl_score(posttest_iadl_dict, False) if not self.posttest_df.empty else self.col_str_na,
             '複失能等級': list(map(convert_disability_level,
-                              self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.blank,
+                              self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.col_str_na,
             '複照顧者負荷總分': get_caregiver_load_score(posttest_caregiver_load_dict,
-                                                 False) if not self.posttest_df.empty else self.blank}
+                                                 False) if not self.posttest_df.empty else self.col_str_na}
         summary.update(posttest_estimation_dict)
         output_df = pd.DataFrame(summary)
         return output_df
@@ -272,8 +273,8 @@ if __name__ == '__main__':
     no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評的案號: 1250筆
     no_post_pretest_df = all_df[(all_df['CASENO'].isin(no_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
     no_post_pretest_df = no_post_pretest_df.sort_values(['CASENO'])  # 只做初評的資料
-    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_df).output('有做複評的總表.xlsx')
-    no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_df).output('沒做複評的總表.xlsx')
+    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_df).get_summary('有做複評的總表.xlsx')
+    no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_df).get_summary('沒做複評的總表.xlsx')
     all_output_df = pd.concat([has_post_output_df, no_post_output_df])
     all_output_df = all_output_df.sort_values(['個案編號'])
     has_post_output_path = path.join(config.data_output_tmp_path, '有做複評的總表.xlsx')
