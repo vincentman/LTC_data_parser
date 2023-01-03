@@ -166,7 +166,8 @@ class OutputTmp:
         pre_post_test_str = '初' if is_pretest else '複'
         iadl_dict = {
             f'{pre_post_test_str}電話': list(map(convert_digit, df['USE_PHONE'])) if not df.empty else self.col_str_na,
-            f'{pre_post_test_str}上街購物': list(map(convert_digit, df['SHOPPING'])) if not df.empty else self.col_str_na,
+            f'{pre_post_test_str}上街購物': list(
+                map(convert_digit, df['SHOPPING'])) if not df.empty else self.col_str_na,
             f'{pre_post_test_str}備餐': list(map(convert_digit, df['COOKING'])) if not df.empty else self.col_str_na,
             f'{pre_post_test_str}家務': list(map(convert_digit, df['HOUSEWORK'])) if not df.empty else self.col_str_na,
             f'{pre_post_test_str}洗衣': list(map(convert_digit, df['CLEANING'])) if not df.empty else self.col_str_na,
@@ -198,9 +199,9 @@ class OutputTmp:
                            '福利身分': list(map(convert_welfare, self.df['福利身分'])),
                            '居住狀況': list(map(convert_digit, self.df['H1A'])),
                            '看護有無': list(map(lambda x: str_na if x == str_na else (0 if '無' in x else 1),
-                                            self.df['LABOR_TYPE'])),
+                                                self.df['LABOR_TYPE'])),
                            '偏遠與否': list(map(lambda x: str_na if x == str_na else (1 if '偏遠地區' in x else 0),
-                                            self.df['A5']))}
+                                                self.df['A5']))}
         summary.update(population_dict)
         converted_diseases_dict = get_converted_diseases_dict(self.df)
         diseases_num = get_diseases_num(converted_diseases_dict, len(self.df))
@@ -233,6 +234,13 @@ class OutputTmp:
                                    '初照顧者負荷總分': get_caregiver_load_score(pretest_caregiver_load_dict, True),
                                    '目標達成率': self.blank}
         summary.update(pretest_estimation_dict)
+        posttest_ache1 = list(
+            map(convert_digit, self.posttest_df['G1A'])) if not self.posttest_df.empty else self.col_str_na
+        posttest_ache2 = list(
+            map(convert_digit, self.posttest_df['G1B'])) if not self.posttest_df.empty else self.col_str_na
+        posttest_health_status_dict = {'複疼痛1': posttest_ache1,
+                                       '複疼痛2': posttest_ache2}
+        summary.update(posttest_health_status_dict)
         posttest_adl_dict = self.get_adl_dict(self.posttest_df, False)
         summary.update(posttest_adl_dict)
         posttest_iadl_dict = self.get_iadl_dict(self.posttest_df, False)
@@ -243,9 +251,9 @@ class OutputTmp:
             '複ADL總分': get_adl_score(posttest_adl_dict, False) if not self.posttest_df.empty else self.col_str_na,
             '複IADL總分': get_iadl_score(posttest_iadl_dict, False) if not self.posttest_df.empty else self.col_str_na,
             '複失能等級': list(map(convert_disability_level,
-                              self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.col_str_na,
+                                   self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.col_str_na,
             '複照顧者負荷總分': get_caregiver_load_score(posttest_caregiver_load_dict,
-                                                 False) if not self.posttest_df.empty else self.col_str_na}
+                                                         False) if not self.posttest_df.empty else self.col_str_na}
         summary.update(posttest_estimation_dict)
         output_df = pd.DataFrame(summary)
         return output_df
@@ -270,10 +278,11 @@ if __name__ == '__main__':
     has_post_pretest_df = all_df[(all_df['CASENO'].isin(has_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
     has_post_pretest_df = has_post_pretest_df.sort_values(['CASENO'])  # 有做複評的初評資料
     tmp_concat_caseno = pd.concat([all_pre_caseno, has_post_caseno], axis=0)
-    no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評的案號: 1250筆
+    no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評(沒做複評)的案號: 1250筆
     no_post_pretest_df = all_df[(all_df['CASENO'].isin(no_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
-    no_post_pretest_df = no_post_pretest_df.sort_values(['CASENO'])  # 只做初評的資料
-    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_df).get_summary('有做複評的總表.xlsx')
+    no_post_pretest_df = no_post_pretest_df.sort_values(['CASENO'])  # 只做初評(沒做複評)的資料
+    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_df).get_summary(
+        '有做複評的總表.xlsx')
     no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_df).get_summary('沒做複評的總表.xlsx')
     all_output_df = pd.concat([has_post_output_df, no_post_output_df])
     all_output_df = all_output_df.sort_values(['個案編號'])
