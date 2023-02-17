@@ -11,7 +11,7 @@ import numpy as np
 str_na = 'N/A'
 convert_yes_no = (lambda x: str_na if x == str_na else (1 if '是' in x else 0))
 convert_digit = (lambda x: str_na if x == str_na else (int(x.split('.')[0])))
-convert_digit_nan_0 = (lambda x: 0 if x == str_na else (int(x.split('.')[0])))
+# convert_digit_nan_0 = (lambda x: 0 if x == str_na else (int(x.split('.')[0])))
 convert_adl_score_2items = (lambda x: (2 - x) * 5)
 convert_adl_score_3items = (lambda x: (3 - x) * 5)
 convert_adl_score_4items = (lambda x: (4 - x) * 5)
@@ -123,11 +123,13 @@ def get_iadl_score(iadl_dict, is_pretest):
 def get_caregiver_load_score(caregiver_load_dict, is_pretest):
     pre_post_test_str = '初' if is_pretest else '複'
     caregiver_load_df = pd.DataFrame(caregiver_load_dict)
+    for col in caregiver_load_df.columns:  # to_numeric: string will be converted as nan
+        caregiver_load_df[col] = pd.to_numeric(caregiver_load_df[col], errors='coerce', downcast='integer')
+    # caregiver_load_df = caregiver_load_df.astype('int32', errors='ignore')
     caregiver_load_score = caregiver_load_df[
         [f'{pre_post_test_str}睡眠', f'{pre_post_test_str}體力', f'{pre_post_test_str}其他家人',
-         f'{pre_post_test_str}困擾行為', f'{pre_post_test_str}壓力']].sum(
-        axis=1).apply(
-        lambda x: x if str(x).isnumeric() else str_na)
+         f'{pre_post_test_str}困擾行為', f'{pre_post_test_str}壓力']].sum(skipna=False, axis=1).apply(
+        lambda x: int(x) if not np.isnan(x) else str_na)
     return caregiver_load_score
 
 
@@ -142,7 +144,7 @@ class OutputTmp:
         self.col_str_na = [str_na] * len(self.df)
         self.df['CASENO'] = self.df['CASENO'].apply(str)
         self.sample_df['案號'] = self.sample_df['案號'].apply(str)
-        self.converted_year = list(map(lambda x: x.year - 1911, self.df['DATE_CREATED']))
+        self.converted_year = list(map(lambda x: int(df.iloc[0]['DATE_CREATED'][:4]) - 1911, self.df['DATE_CREATED']))
         self.df = pd.merge(self.df, self.sample_df[['案號', '姓名', '身分證號', '年齡', '福利身分']], left_on='CASENO',
                            right_on='案號').drop('案號', axis=1)
 
@@ -186,11 +188,12 @@ class OutputTmp:
             f'{pre_post_test_str}壓力': list(map(convert_yes_no, df['J5'])) if not df.empty else self.col_str_na}
         return caregiver_load_dict
 
-    def get_summary(self, output_file_name):
+    def get_summary(self):
         summary = dict()
         convert_age = (lambda x: int(x.split('歲')[0]))
         convert_gender = (lambda x: 1 if x[1] == '1' else 2)
-        basic_info_dict = {'個案編號': self.df['CASENO'], '年度': self.converted_year, '定義': self.blank,
+        basic_info_dict = {'個案編號': self.df['CASENO'], '初評建檔日期': self.df['DATE_CREATED'],
+                           '年度': self.converted_year, '定義': self.blank,
                            '姓名': self.df['姓名'], '年齡': list(map(convert_age, self.df['年齡'])),
                            '性別': list(map(convert_gender, self.df['身分證號']))}
         summary.update(basic_info_dict)
@@ -206,11 +209,13 @@ class OutputTmp:
         converted_diseases_dict = get_converted_diseases_dict(self.df)
         diseases_num = get_diseases_num(converted_diseases_dict, len(self.df))
         response_score = get_response_score(self.df, ['D_RESP2', 'D_RESP3', 'D_RESP4'])
-        convert_disability_level = (lambda x: re.findall(r"\d", x)[0])
+        convert_disability_level = (lambda x: str_na if x == str_na else re.findall(r"\d", x)[0])
         pretest_disability_level = list(map(convert_disability_level, self.df['CMS_LEV']))
         health_status_dict = {'失能等級': pretest_disability_level,
                               '主要疾病分類': self.blank,
-                              '共病數目': diseases_num, '疼痛1': list(map(convert_digit, self.df['G1A'])),
+                              '共病數目': diseases_num, '初身高': self.df['TALL'],
+                              '初體重': self.df['WEIGH'],
+                              '疼痛1': list(map(convert_digit, self.df['G1A'])),
                               '疼痛2': list(map(convert_digit, self.df['G1B'])), '疼痛乘積': self.blank,
                               '視力': list(map(convert_digit, self.df['VISION'])),
                               '聽力': list(map(convert_digit, self.df['HEARING'])),
@@ -234,11 +239,16 @@ class OutputTmp:
                                    '初照顧者負荷總分': get_caregiver_load_score(pretest_caregiver_load_dict, True),
                                    '目標達成率': self.blank}
         summary.update(pretest_estimation_dict)
+        posttest_date_created = list(
+            self.posttest_df['DATE_CREATED']) if not self.posttest_df.empty else self.col_str_na
+        posttest_tall = list(self.posttest_df['TALL']) if not self.posttest_df.empty else self.col_str_na
+        posttest_weight = list(self.posttest_df['WEIGH']) if not self.posttest_df.empty else self.col_str_na
         posttest_ache1 = list(
             map(convert_digit, self.posttest_df['G1A'])) if not self.posttest_df.empty else self.col_str_na
         posttest_ache2 = list(
             map(convert_digit, self.posttest_df['G1B'])) if not self.posttest_df.empty else self.col_str_na
-        posttest_health_status_dict = {'複疼痛1': posttest_ache1,
+        posttest_health_status_dict = {'複評建檔日期': posttest_date_created, '複身高': posttest_tall,
+                                       '複體重': posttest_weight, '複疼痛1': posttest_ache1,
                                        '複疼痛2': posttest_ache2}
         summary.update(posttest_health_status_dict)
         posttest_adl_dict = self.get_adl_dict(self.posttest_df, False)
@@ -259,45 +269,64 @@ class OutputTmp:
         return output_df
 
 
+def output_loss_final_caseno_list(all_sample_list_df, final_caseno_list_df):
+    all_sample_caseno_list = all_sample_list_df['案號']
+    final_sample_caseno_list = final_caseno_list_df['案號']
+    valid_final_caseno_list = final_caseno_list_df[final_sample_caseno_list.isin(all_sample_caseno_list)]['案號']
+    tmp_concat_caseno = pd.concat([final_sample_caseno_list, valid_final_caseno_list], axis=0)
+    final_loss_caseno_list = tmp_concat_caseno.drop_duplicates(keep=False)
+    print(f'不在名冊裡的最終名單: {len(final_loss_caseno_list)}筆')
+    if len(final_loss_caseno_list) > 0:
+        with pd.ExcelWriter(path.join(config.sample_select_list_path, '不在名冊裡的最終名單.xlsx'), engine='openpyxl') as writer:
+            final_loss_caseno_list.to_excel(writer, sheet_name="遺失案號", index=False)
+
+
+def get_final_sample_list_df(all_sample_list_df):
+    final_caseno_list_file_path = path.join(config.sample_select_list_path,
+                                            config.final_caseno_list_file_name)
+    final_caseno_list_df = pd.read_excel(final_caseno_list_file_path, index_col=None, engine='openpyxl')
+    print(f'reading final caseno list(count: {len(final_caseno_list_df)})..... => {final_caseno_list_file_path}')
+    all_sample_list_df['案號'] = all_sample_list_df['案號'].apply(str)
+    final_caseno_list_df['案號'] = final_caseno_list_df['案號'].apply(str)
+    output_loss_final_caseno_list(all_sample_list_df, final_caseno_list_df)
+    return all_sample_list_df[all_sample_list_df['案號'].isin(final_caseno_list_df['案號'])]
+
+
 if __name__ == '__main__':
     start = time.time()
     with open(path.join(config.sample_list_serialized_path, config.sample_list_pickle_name), 'rb') as handle:
-        all_sample_df = pd.DataFrame.from_dict(pickle.load(handle))
-    all_sample_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)
-    print(f'所有年度個案筆數： {len(all_sample_df)}')
+        all_sample_list_df = pd.DataFrame.from_dict(pickle.load(handle))
+    all_sample_list_df = get_final_sample_list_df(all_sample_list_df)
+    all_sample_list_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)  # 2967筆
+    print(f'最終個案筆數： {len(all_sample_list_df)}')
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name), 'rb') as handle:
         all_df = pd.DataFrame.from_dict(pickle.load(handle))
-    all_df.drop_duplicates(inplace=True)
-    print(f'所有年度資料筆數： {len(all_df)}')
+    all_df.drop_duplicates(inplace=True)  # 5899筆
+    print(f'全部資料筆數： {len(all_df)}')
     os.makedirs(config.data_output_tmp_path, exist_ok=True)
-    all_pre_caseno = all_df[all_df['PLAN_TYPE'] == '初評']['CASENO']  # 2734筆
+    all_pre_caseno = all_df[all_df['PLAN_TYPE'] == '初評']['CASENO']
     has_post_posttest_df = all_df[(all_df['CASENO'].isin(all_pre_caseno)) & (all_df['PLAN_TYPE'] == '複評')]
     has_post_posttest_df = has_post_posttest_df.sort_values(['CASENO', 'DATE_CREATED'])
     has_post_posttest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)  # 有做複評的複評資料
-    has_post_caseno = has_post_posttest_df['CASENO']  # 有做複評的案號: 1484筆
+    has_post_caseno = has_post_posttest_df['CASENO']  # 有做複評的案號: 1570筆
+    print('有做複評案號的筆數： ', len(has_post_caseno))
     has_post_pretest_df = all_df[(all_df['CASENO'].isin(has_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
     has_post_pretest_df = has_post_pretest_df.sort_values(['CASENO'])  # 有做複評的初評資料
     tmp_concat_caseno = pd.concat([all_pre_caseno, has_post_caseno], axis=0)
-    no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評(沒做複評)的案號: 1250筆
+    no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評(沒做複評)的案號: 1168筆
+    print('沒做複評案號的筆數： ', len(no_post_caseno))
     no_post_pretest_df = all_df[(all_df['CASENO'].isin(no_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
     no_post_pretest_df = no_post_pretest_df.sort_values(['CASENO'])  # 只做初評(沒做複評)的資料
-    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_df).get_summary(
-        '有做複評的總表.xlsx')
-    no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_df).get_summary('沒做複評的總表.xlsx')
+    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_list_df).get_summary()
+    print('有做複評的總表，筆數： ', len(has_post_output_df))
+    no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_list_df).get_summary()
+    print('沒做複評的總表，筆數： ', len(no_post_output_df))
     all_output_df = pd.concat([has_post_output_df, no_post_output_df])
     all_output_df = all_output_df.sort_values(['個案編號'])
-    has_post_output_path = path.join(config.data_output_tmp_path, '有做複評的總表.xlsx')
-    print('writing excel..... => ', has_post_output_path)
-    with pd.ExcelWriter(has_post_output_path, engine='openpyxl') as writer:
-        has_post_output_df.to_excel(writer, sheet_name="總表", index=False)
-    no_post_output_path = path.join(config.data_output_tmp_path, '沒做複評的總表.xlsx')
-    print('writing excel..... => ', no_post_output_path)
-    with pd.ExcelWriter(no_post_output_path, engine='openpyxl') as writer:
-        no_post_output_df.to_excel(writer, sheet_name="總表", index=False)
+    print('全部總表，筆數： ', len(all_output_df))
     all_output_path = path.join(config.data_output_tmp_path, '全部總表.xlsx')
     print('writing excel..... => ', all_output_path)
     with pd.ExcelWriter(all_output_path, engine='openpyxl') as writer:
         all_output_df.to_excel(writer, sheet_name="總表", index=False)
-
     end = time.time()
     print('Elapsed time(sec) for output_tmp: ', end - start)

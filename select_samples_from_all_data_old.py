@@ -22,16 +22,18 @@ if __name__ == '__main__':
         sample_list_df = pd.read_excel(sample_list_file_path, engine='xlrd')  # use xlrd to read .xls file
         all_sample_list_df = pd.concat([all_sample_list_df, sample_list_df], axis=0)
     os.makedirs(config.sample_list_serialized_path, exist_ok=True)
-    with open(path.join(config.sample_list_serialized_path, config.sample_list_pickle_name), 'wb') as handle:
+    sample_list_pickle_path = path.join(config.sample_list_serialized_path, config.sample_list_pickle_name)
+    with open(sample_list_pickle_path, 'wb') as handle:
         all_sample_list_df.drop_duplicates()
+        print('writing sample list to pickle..... => ', sample_list_file_path)
         pickle.dump(all_sample_list_df, handle, protocol=pickle.HIGHEST_PROTOCOL)
     all_sample_list_df['案號'] = all_sample_list_df['案號'].apply(str)
     all_sample_list_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)
     data_all_years_samples_df = data_df[data_df['CASENO'].isin(all_sample_list_df['案號'])]
-    output_excel_path = path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name)
-    with open(output_excel_path,
+    data_selected_pickle_path = path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name)
+    with open(data_selected_pickle_path,
               'wb') as handle:
-        print(f'write pickle(count: {len(data_all_years_samples_df)}.....{output_excel_path}')
+        print(f'write pickle(count: {len(data_all_years_samples_df)}.....{data_selected_pickle_path}')
         pickle.dump(data_all_years_samples_df, handle, protocol=pickle.HIGHEST_PROTOCOL)
     end = time.time()
     print('Elapsed time(sec) for select_sample: ', end - start)
