@@ -11,8 +11,8 @@ data_sample_selected_path = 'data_sample_selected'
 data_sample_selected_pickle_name = '符合最終名單的原始資料.pickle'
 data_sample_selected_pickle_name_hospital = 'all_years_data_samples_hospital.pickle'  # all columns
 data_sample_selected_pickle_name_hospital_newest = 'all_years_data_samples_hospital_僅最新審核.pickle'  # all columns
-data_selected_pickle_name_hospital = 'data_samples_hospital.pickle'  # key columns
-data_selected_pickle_name_hospital_newest = 'data_samples_hospital_僅最新審核.pickle'  # key columns
+data_selected_pickle_name_hospital = '符合案號的資料_屏基.pickle'  # key columns
+data_selected_pickle_name_hospital_newest = '符合案號的資料_屏基_僅最新審核.pickle'  # key columns
 
 # sample list
 sample_list_serialized_path = 'sample_list_serialized'
