@@ -144,7 +144,7 @@ class OutputTmp:
         self.col_str_na = [str_na] * len(self.df)
         self.df['CASENO'] = self.df['CASENO'].apply(str)
         self.sample_df['案號'] = self.sample_df['案號'].apply(str)
-        self.converted_year = list(map(lambda x: int(df.iloc[0]['DATE_CREATED'][:4]) - 1911, self.df['DATE_CREATED']))
+        self.converted_year = list(map(lambda x: int(x[:4]) - 1911, self.df['DATE_CREATED']))
         self.df = pd.merge(self.df, self.sample_df[['案號', '姓名', '身分證號', '年齡', '福利身分']], left_on='CASENO',
                            right_on='案號').drop('案號', axis=1)
 
