@@ -10,8 +10,8 @@ from pathlib import Path
 if __name__ == '__main__':
     start = time.time()
     if sys.argv[1] == 'all_samples_data':
-        file_name = config.sample_list_pickle_name
-        folder_path = config.sample_list_serialized_path
+        file_name = config.data_sample_selected_pickle_name
+        folder_path = config.data_sample_selected_path
         data_pickle_path = path.join(folder_path, file_name)
         print('reading data pickle.....', data_pickle_path)
         with open(data_pickle_path, 'rb') as handle:

@@ -101,6 +101,7 @@ if __name__ == '__main__':
             print('reading ods..... => ', item_in_year_dir.name)
             month_df = read_ods(item_in_year_dir.absolute())
             month_df['CASENO'] = month_df['CASENO'].apply(convert_caseno)
+            all_sample_list_df['案號'] = all_sample_list_df['案號'].apply(str)
             if set_is_select_by_caseno:
                 month_df = month_df[month_df['CASENO'].isin(all_sample_list_df['案號'])]  # 每月選取符合的案號
             year_df = pd.concat([year_df, month_df], axis=0)

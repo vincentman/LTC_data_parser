@@ -8,7 +8,7 @@ data_serialized_xlsx_name = 'all_years.xlsx'
 
 # data by sample list
 data_sample_selected_path = 'data_sample_selected'
-data_sample_selected_pickle_name = 'data_samples.pickle'
+data_sample_selected_pickle_name = '符合最終名單的原始資料.pickle'
 data_sample_selected_pickle_name_hospital = 'all_years_data_samples_hospital.pickle'  # all columns
 data_sample_selected_pickle_name_hospital_newest = 'all_years_data_samples_hospital_僅最新審核.pickle'  # all columns
 data_selected_pickle_name_hospital = 'data_samples_hospital.pickle'  # key columns
@@ -16,7 +16,7 @@ data_selected_pickle_name_hospital_newest = 'data_samples_hospital_僅最新審�
 
 # sample list
 sample_list_serialized_path = 'sample_list_serialized'
-sample_list_pickle_name = 'all_sample_list.pickle'
+sample_list_pickle_name = '名冊.pickle'
 sample_select_list_path = 'sample_select_list'
 sample_select_list_path_hospital = 'sample_select_list_hospital'
 sample_select_list_file_name_hospital = '屏基-727名長照居家醫師個案資料-1120204照管系統下載.xls'
