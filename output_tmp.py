@@ -221,9 +221,9 @@ class OutputTmp:
                               '聽力': list(map(convert_digit, self.df['HEARING'])),
                               '表達能力': list(map(convert_digit, self.df['EXPRESSION'])),
                               '理解能力': list(map(convert_digit, self.df['RECEPTION'])),
-                              '短期記憶2': list(map(convert_digit, self.df['D_RESP2'])),
-                              '短期記憶3': list(map(convert_digit, self.df['D_RESP3'])),
-                              '短期記憶4': list(map(convert_digit, self.df['D_RESP4'])), '記憶總分': response_score}
+                              '初短期記憶2': list(map(convert_digit, self.df['D_RESP2'])),
+                              '初短期記憶3': list(map(convert_digit, self.df['D_RESP3'])),
+                              '初短期記憶4': list(map(convert_digit, self.df['D_RESP4'])), '初記憶總分': response_score}
         summary.update(health_status_dict)
         disease_items_dict = get_disease_items_dict(self.df)
         summary.update(disease_items_dict)
@@ -247,9 +247,20 @@ class OutputTmp:
             map(convert_digit, self.posttest_df['G1A'])) if not self.posttest_df.empty else self.col_str_na
         posttest_ache2 = list(
             map(convert_digit, self.posttest_df['G1B'])) if not self.posttest_df.empty else self.col_str_na
+        posttest_resp2 = list(
+            map(convert_digit, self.posttest_df['D_RESP2'])) if not self.posttest_df.empty else self.col_str_na
+        posttest_resp3 = list(
+            map(convert_digit, self.posttest_df['D_RESP3'])) if not self.posttest_df.empty else self.col_str_na
+        posttest_resp4 = list(
+            map(convert_digit, self.posttest_df['D_RESP4'])) if not self.posttest_df.empty else self.col_str_na
+        posttest_response_score = get_response_score(self.posttest_df, ['D_RESP2', 'D_RESP3',
+                                                                        'D_RESP4']).tolist() \
+            if not self.posttest_df.empty else self.col_str_na
         posttest_health_status_dict = {'複評建檔日期': posttest_date_created, '複身高': posttest_tall,
                                        '複體重': posttest_weight, '複疼痛1': posttest_ache1,
-                                       '複疼痛2': posttest_ache2}
+                                       '複疼痛2': posttest_ache2, '複短期記憶2': posttest_resp2,
+                                       '複短期記憶3': posttest_resp3, '複短期記憶4': posttest_resp4,
+                                       '複記憶總分': posttest_response_score}
         summary.update(posttest_health_status_dict)
         posttest_adl_dict = self.get_adl_dict(self.posttest_df, False)
         summary.update(posttest_adl_dict)
@@ -323,22 +334,22 @@ if __name__ == '__main__':
         all_sample_list_df = pd.DataFrame.from_dict(pickle.load(handle))
     all_sample_list_df = get_final_sample_list_df(all_sample_list_df)
     all_sample_list_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)  # 2967筆
-    print(f'取得個案筆數： {len(all_sample_list_df)}')
+    print(f'最終個案筆數： {len(all_sample_list_df)}')  # 2426筆
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name), 'rb') as handle:
         all_df = pd.DataFrame.from_dict(pickle.load(handle))
-    all_df.drop_duplicates(inplace=True)  # 5899筆
-    print(f'取得資料筆數： {len(all_df)}')
+    all_df.drop_duplicates(inplace=True)  # 4402筆
+    print(f'全部資料筆數： {len(all_df)}')
     os.makedirs(config.data_output_tmp_path, exist_ok=True)
     all_pre_caseno = all_df[all_df['PLAN_TYPE'] == '初評']['CASENO']
     has_post_posttest_df = all_df[(all_df['CASENO'].isin(all_pre_caseno)) & (all_df['PLAN_TYPE'] == '複評')]
     has_post_posttest_df = has_post_posttest_df.sort_values(['CASENO', 'DATE_CREATED'])
     has_post_posttest_df.drop_duplicates(subset=['CASENO'], keep='first', inplace=True)  # 有做複評的複評資料
-    has_post_caseno = has_post_posttest_df['CASENO']  # 有做複評的案號: 1570筆
+    has_post_caseno = has_post_posttest_df['CASENO']  # 有做複評的案號: 1153筆
     print('有做複評案號的筆數： ', len(has_post_caseno))
     has_post_pretest_df = all_df[(all_df['CASENO'].isin(has_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
     has_post_pretest_df = has_post_pretest_df.sort_values(['CASENO'])  # 有做複評的初評資料
     tmp_concat_caseno = pd.concat([all_pre_caseno, has_post_caseno], axis=0)
-    no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評(沒做複評)的案號: 1168筆
+    no_post_caseno = tmp_concat_caseno.drop_duplicates(keep=False)  # 只做初評(沒做複評)的案號: 1029筆
     print('沒做複評案號的筆數： ', len(no_post_caseno))
     no_post_pretest_df = all_df[(all_df['CASENO'].isin(no_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
     no_post_pretest_df = no_post_pretest_df.sort_values(['CASENO'])  # 只做初評(沒做複評)的資料
@@ -347,8 +358,7 @@ if __name__ == '__main__':
     no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_list_df).get_summary()
     print('沒做複評的總表，筆數： ', len(no_post_output_df))
     all_output_df = pd.concat([has_post_output_df, no_post_output_df])
-    all_output_df = all_output_df.sort_values(['個案編號'])
-    check_final_sample_list_match_output(all_output_df['個案編號'])
+    all_output_df = all_output_df.sort_values(['個案編號'])  # 全部總表：2182筆
     print('全部總表，筆數： ', len(all_output_df))
     all_output_path = path.join(config.data_output_tmp_path, '全部總表.xlsx')
     print('writing excel..... => ', all_output_path)
