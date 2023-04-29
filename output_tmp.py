@@ -202,9 +202,9 @@ class OutputTmp:
                            '福利身分': list(map(convert_welfare, self.df['福利身分'])),
                            '居住狀況': list(map(convert_digit, self.df['H1A'])),
                            '看護有無': list(map(lambda x: str_na if x == str_na else (0 if '無' in x else 1),
-                                            self.df['LABOR_TYPE'])),
+                                                self.df['LABOR_TYPE'])),
                            '偏遠與否': list(map(lambda x: str_na if x == str_na else (1 if '偏遠地區' in x else 0),
-                                            self.df['A5']))}
+                                                self.df['A5']))}
         summary.update(population_dict)
         converted_diseases_dict = get_converted_diseases_dict(self.df)
         diseases_num = get_diseases_num(converted_diseases_dict, len(self.df))
@@ -272,9 +272,9 @@ class OutputTmp:
             '複ADL總分': get_adl_score(posttest_adl_dict, False) if not self.posttest_df.empty else self.col_str_na,
             '複IADL總分': get_iadl_score(posttest_iadl_dict, False) if not self.posttest_df.empty else self.col_str_na,
             '複失能等級': list(map(convert_disability_level,
-                              self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.col_str_na,
+                                   self.posttest_df['CMS_LEV'])) if not self.posttest_df.empty else self.col_str_na,
             '複照顧者負荷總分': get_caregiver_load_score(posttest_caregiver_load_dict,
-                                                 False) if not self.posttest_df.empty else self.col_str_na}
+                                                         False) if not self.posttest_df.empty else self.col_str_na}
         summary.update(posttest_estimation_dict)
         output_df = pd.DataFrame(summary)
         return output_df
@@ -284,11 +284,14 @@ def output_loss_final_caseno_list(all_sample_caseno_list, final_sample_caseno_li
     loss_final_caseno_list = check_if_b_contained_in_a(all_sample_caseno_list, final_sample_caseno_list)
     print(f'不在名冊裡的最終名單: {len(loss_final_caseno_list)}筆')
     if len(loss_final_caseno_list) > 0:
-        with pd.ExcelWriter(path.join(config.sample_select_list_path, '不在名冊裡的最終名單.xlsx'), engine='openpyxl') as writer:
+        with pd.ExcelWriter(path.join(config.sample_select_list_path, '不在名冊裡的最終名單.xlsx'),
+                            engine='openpyxl') as writer:
             loss_final_caseno_list.to_excel(writer, sheet_name="遺失案號", index=False)
 
 
-def get_final_sample_list_df(all_sample_list_df):
+def get_final_sample_list_df():
+    with open(path.join(config.sample_list_serialized_path, config.sample_list_pickle_name), 'rb') as handle:
+        all_sample_list_df = pd.DataFrame.from_dict(pickle.load(handle))  # 2967筆
     final_caseno_list_file_path = path.join(config.sample_select_list_path,
                                             config.final_caseno_list_file_name)
     final_caseno_list_df = pd.read_excel(final_caseno_list_file_path, index_col=None, engine='openpyxl')
@@ -298,7 +301,9 @@ def get_final_sample_list_df(all_sample_list_df):
     all_sample_caseno_list = all_sample_list_df['案號']
     final_sample_caseno_list = final_caseno_list_df['案號']
     output_loss_final_caseno_list(all_sample_caseno_list, final_sample_caseno_list)
-    return all_sample_list_df[all_sample_caseno_list.isin(final_sample_caseno_list)]
+    all_sample_list_df = all_sample_list_df[all_sample_caseno_list.isin(final_sample_caseno_list)]
+    all_sample_list_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)
+    return all_sample_list_df
 
 
 def check_if_b_contained_in_a(a, b):
@@ -313,28 +318,26 @@ def check_if_b_contained_in_a(a, b):
     return tmp.drop_duplicates(keep=False)
 
 
-def check_final_sample_list_match_output(output_caseno_list):
+def check_final_sample_list_match_output(output_df):
     final_caseno_list_file_path = path.join(config.sample_select_list_path,
                                             config.final_caseno_list_file_name)
     final_caseno_list_df = pd.read_excel(final_caseno_list_file_path, index_col=None, engine='openpyxl')
     print(
         f'final check ~~ reading final caseno list(count: {len(final_caseno_list_df)})..... => {final_caseno_list_file_path}')
-    final_caseno_list = final_caseno_list_df['案號'].apply(str)
+    final_caseno_list = final_caseno_list_df['案號'].apply(str)  # 最終名單案號
+    output_caseno_list = output_df['個案編號'].apply(str)  # 全部總表案號
     loss_final_caseno_list = check_if_b_contained_in_a(output_caseno_list, final_caseno_list)
     print(f'不在Output裡的最終名單: {len(loss_final_caseno_list)}筆')
     if len(loss_final_caseno_list) > 0:
-        with pd.ExcelWriter(path.join(config.sample_select_list_path, '不在Output裡的最終名單.xlsx'),
+        with pd.ExcelWriter(path.join(config.data_output_tmp_path, '不在全部總表裡的最終名單.xlsx'),
                             engine='openpyxl') as writer:
             loss_final_caseno_list.to_excel(writer, sheet_name="遺失案號", index=False)
 
 
 if __name__ == '__main__':
     start = time.time()
-    with open(path.join(config.sample_list_serialized_path, config.sample_list_pickle_name), 'rb') as handle:
-        all_sample_list_df = pd.DataFrame.from_dict(pickle.load(handle))
-    all_sample_list_df = get_final_sample_list_df(all_sample_list_df)
-    all_sample_list_df.drop_duplicates(subset=['案號'], keep='first', inplace=True)  # 2967筆
-    print(f'最終個案筆數： {len(all_sample_list_df)}')  # 2426筆
+    final_sample_list_df = get_final_sample_list_df()
+    print(f'最終名單筆數： {len(final_sample_list_df)}')  # 2426筆
     with open(path.join(config.data_sample_selected_path, config.data_sample_selected_pickle_name), 'rb') as handle:
         all_df = pd.DataFrame.from_dict(pickle.load(handle))
     all_df.drop_duplicates(inplace=True)  # 4402筆
@@ -353,12 +356,13 @@ if __name__ == '__main__':
     print('沒做複評案號的筆數： ', len(no_post_caseno))
     no_post_pretest_df = all_df[(all_df['CASENO'].isin(no_post_caseno)) & (all_df['PLAN_TYPE'] == '初評')]
     no_post_pretest_df = no_post_pretest_df.sort_values(['CASENO'])  # 只做初評(沒做複評)的資料
-    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, all_sample_list_df).get_summary()
+    has_post_output_df = OutputTmp(has_post_pretest_df, has_post_posttest_df, final_sample_list_df).get_summary()
     print('有做複評的總表，筆數： ', len(has_post_output_df))
-    no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), all_sample_list_df).get_summary()
+    no_post_output_df = OutputTmp(no_post_pretest_df, pd.DataFrame(), final_sample_list_df).get_summary()
     print('沒做複評的總表，筆數： ', len(no_post_output_df))
     all_output_df = pd.concat([has_post_output_df, no_post_output_df])
     all_output_df = all_output_df.sort_values(['個案編號'])  # 全部總表：2182筆
+    check_final_sample_list_match_output(all_output_df)
     print('全部總表，筆數： ', len(all_output_df))
     all_output_path = path.join(config.data_output_tmp_path, '全部總表.xlsx')
     print('writing excel..... => ', all_output_path)
